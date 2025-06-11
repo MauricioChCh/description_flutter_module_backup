@@ -26,10 +26,10 @@ class DescriptionPage extends StatefulWidget {
 class _DescriptionPageState extends State<DescriptionPage> {
   static const platform = MethodChannel('com.example.bravia/descriptions');
 
-  String internshipTitle = "Cargando...";
-  String internshipCompany = "Cargando...";
-  String internshipLocation = "Cargando...";
-  String internshipDescription = "Cargando descripción...";
+  String internshipTitle = "Charging...";
+  String internshipCompany = "Charging...";
+  String internshipLocation = "Charging...";
+  String internshipDescription = "Charging description...";
   List<String> requirements = [];
   List<String> activities = [];
   List<String> benefits = [];
@@ -90,7 +90,8 @@ class _DescriptionPageState extends State<DescriptionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +155,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
 
             // Descripción
             _buildSection(
-              "📋 Descripción",
+              "📋 Internship description",
               internshipDescription,
               Colors.green,
             ),
@@ -164,7 +165,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
             // Requisitos
             if (requirements.isNotEmpty)
               _buildListSection(
-                "✅ Requisitos",
+                "✅ Requirements",
                 requirements,
                 Colors.orange,
               ),
@@ -174,7 +175,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
             // Actividades
             if (activities.isNotEmpty)
               _buildListSection(
-                "🎯 Actividades",
+                "🎯 Activities",
                 activities,
                 Colors.purple,
               ),
@@ -183,8 +184,8 @@ class _DescriptionPageState extends State<DescriptionPage> {
 
             // Beneficios
             _buildListSection(
-              "🎁 Beneficios",
-              benefits.isEmpty ? ["Información no disponible"] : benefits,
+              "🎁 Benefits",
+              benefits.isEmpty ? ["Information not available"] : benefits,
               Colors.teal,
             ),
 
@@ -205,7 +206,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
                   elevation: 4,
                 ),
                 child: Text(
-                  "Aplicar a esta práctica",
+                  "Apply Now",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -215,6 +216,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -238,7 +240,7 @@ class _DescriptionPageState extends State<DescriptionPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "ℹ️ Información General",
+            "ℹ️ General Information",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -246,10 +248,10 @@ class _DescriptionPageState extends State<DescriptionPage> {
             ),
           ),
           SizedBox(height: 12),
-          if (duration.isNotEmpty) _buildInfoRow("Duración", duration),
-          if (modality.isNotEmpty) _buildInfoRow("Modalidad", modality),
-          if (schedule.isNotEmpty) _buildInfoRow("Horario", schedule),
-          if (salary > 0) _buildInfoRow("Salario", "\$${salary.toStringAsFixed(0)}"),
+          if (duration.isNotEmpty) _buildInfoRow("Duration", duration),
+          if (modality.isNotEmpty) _buildInfoRow("Modality", modality),
+          if (schedule.isNotEmpty) _buildInfoRow("Schedule", schedule),
+          if (salary > 0) _buildInfoRow("Salary", "\$${salary.toStringAsFixed(0)}"),
         ],
       ),
     );
