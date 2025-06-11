@@ -1,553 +1,402 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
 
-void main() => runApp(const MyApp());
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bravia Flutter Module',
-      // IMPORTANTE: No definir initialRoute aquí, se maneja desde Android
-      onGenerateRoute: (RouteSettings settings) {
-        // DEBUG: Imprimir la ruta que se está intentando cargar
-        print('🐛 Flutter Route: ${settings.name}');
-        print('🐛 Flutter Arguments: ${settings.arguments}');
-
-        // Parsear la ruta y sus parámetros
-        final uri = Uri.parse(settings.name ?? '/');
-        final path = uri.path;
-        final queryParams = uri.queryParameters;
-
-        print('🐛 Path: $path');
-        print('🐛 Query Params: $queryParams');
-
-        switch (path) {
-          case '/demo':
-            return MaterialPageRoute(builder: (_) => const DemoPage());
-
-          case '/chat':
-            final internshipsJson = queryParams['internships'] ?? '[]';
-            print('🐛 Internships JSON: $internshipsJson');
-            return MaterialPageRoute(
-              builder: (_) => ChatMainPage(initialInternshipsJson: internshipsJson),
-            );
-
-          case '/':
-          default:
-          // Página por defecto con información de debug
-            return MaterialPageRoute(
-              builder: (_) => DebugHomePage(
-                routeName: settings.name,
-                arguments: settings.arguments,
-              ),
-            );
-        }
-      },
+      title: 'BravIA Descriptions',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      home: DescriptionPage(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-// Página de debug para ver qué está pasando
-class DebugHomePage extends StatelessWidget {
-  final String? routeName;
-  final Object? arguments;
+class DescriptionPage extends StatefulWidget {
+  @override
+  _DescriptionPageState createState() => _DescriptionPageState();
+}
 
-  const DebugHomePage({
-    super.key,
-    this.routeName,
-    this.arguments,
-  });
+class _DescriptionPageState extends State<DescriptionPage> {
+  static const platform = MethodChannel('com.example.bravia/descriptions');
+
+  String internshipTitle = "Cargando...";
+  String internshipCompany = "Cargando...";
+  String internshipLocation = "Cargando...";
+  String internshipDescription = "Cargando descripción...";
+  List<String> requirements = [];
+  List<String> activities = [];
+  List<String> benefits = [];
+  double salary = 0.0;
+  String duration = "";
+  String modality = "";
+  String schedule = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _setupMethodChannel();
+    _requestInternshipData();
+  }
+
+  void _setupMethodChannel() {
+    platform.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'updateInternshipData':
+          _updateInternshipData(call.arguments);
+          break;
+        default:
+          throw PlatformException(
+            code: 'Unimplemented',
+            details: 'Method ${call.method} not implemented',
+          );
+      }
+    });
+  }
+
+  void _updateInternshipData(dynamic data) {
+    if (data is Map) {
+      setState(() {
+        internshipTitle = data['title'] ?? 'Sin título';
+        internshipCompany = data['company'] ?? 'Sin empresa';
+        internshipLocation = data['location'] ?? 'Sin ubicación';
+        internshipDescription = data['description'] ?? 'Sin descripción';
+        requirements = List<String>.from(data['requirements'] ?? []);
+        activities = List<String>.from(data['activities'] ?? []);
+        benefits = List<String>.from(data['benefits'] ?? []);
+        salary = (data['salary'] ?? 0.0).toDouble();
+        duration = data['duration'] ?? '';
+        modality = data['modality'] ?? '';
+        schedule = data['schedule'] ?? '';
+      });
+    }
+  }
+
+  void _requestInternshipData() async {
+    try {
+      await platform.invokeMethod('requestInternshipData');
+    } catch (e) {
+      print('Error requesting data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flutter Debug'),
-        backgroundColor: Colors.red,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: Colors.grey[50],
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '🐛 INFORMACIÓN DE DEBUG',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // Header con información de la empresa
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue[600]!, Colors.blue[400]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    internshipTitle,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    internshipCompany,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    internshipLocation,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
-            Text('Ruta recibida: ${routeName ?? "null"}'),
-            const SizedBox(height: 10),
-            Text('Argumentos: ${arguments?.toString() ?? "null"}'),
-            const SizedBox(height: 20),
-            const Text(
-              'Si ves esta página, significa que Flutter no está recibiendo la ruta correcta desde Android.',
-              style: TextStyle(fontSize: 16, color: Colors.red),
+
+            SizedBox(height: 24),
+
+            // Información básica
+            _buildInfoSection(),
+
+            SizedBox(height: 20),
+
+            // Descripción
+            _buildSection(
+              "📋 Descripción",
+              internshipDescription,
+              Colors.green,
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Intentar ir manualmente a demo
-                Navigator.pushReplacementNamed(context, '/demo');
-              },
-              child: const Text('Ir a Demo'),
+
+            SizedBox(height: 20),
+
+            // Requisitos
+            if (requirements.isNotEmpty)
+              _buildListSection(
+                "✅ Requisitos",
+                requirements,
+                Colors.orange,
+              ),
+
+            SizedBox(height: 20),
+
+            // Actividades
+            if (activities.isNotEmpty)
+              _buildListSection(
+                "🎯 Actividades",
+                activities,
+                Colors.purple,
+              ),
+
+            SizedBox(height: 20),
+
+            // Beneficios
+            _buildListSection(
+              "🎁 Beneficios",
+              benefits.isEmpty ? ["Información no disponible"] : benefits,
+              Colors.teal,
             ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                // Intentar ir manualmente a chat
-                Navigator.pushReplacementNamed(context, '/chat');
-              },
-              child: const Text('Ir a Chat'),
+
+            SizedBox(height: 30),
+
+            // Botón de acción
+            Container(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _onApplyPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[600],
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                ),
+                child: Text(
+                  "Aplicar a esta práctica",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-// ========== DEMO PAGE ==========
-class DemoPage extends StatelessWidget {
-  const DemoPage({super.key});
-
-  static const platform = MethodChannel('com.example.bravia/demo');
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('🎯 Demo Flutter'),
-        backgroundColor: Colors.green,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => platform.invokeMethod('close'),
+  Widget _buildInfoSection() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.flutter_dash,
-              size: 100,
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '¡Esta es la DEMO de Flutter!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Esta página solo se debe mostrar cuando presiones el botón "Ver demo Flutter".',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('¡Demo funcionando!')),
-                );
-              },
-              child: const Text('Probar Demo'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ========== CHAT MODULE ==========
-class ChatMainPage extends StatefulWidget {
-  final String initialInternshipsJson;
-
-  const ChatMainPage({super.key, required this.initialInternshipsJson});
-
-  @override
-  State<ChatMainPage> createState() => _ChatMainPageState();
-}
-
-class Internship {
-  final int id;
-  final String title;
-  final String company;
-
-  Internship({required this.id, required this.title, required this.company});
-
-  factory Internship.fromJson(Map<String, dynamic> json) {
-    return Internship(
-      id: json['id']?.toInt() ?? 0,
-      title: json['title'] ?? 'Sin título',
-      company: json['company'] ?? 'Sin empresa',
-    );
-  }
-}
-
-class _ChatMainPageState extends State<ChatMainPage> {
-  static const platform = MethodChannel('com.example.bravia/chat');
-  List<Internship> internships = [];
-  int _selectedIndex = 0;
-  String? _conversationId;
-  Internship? _selectedInternship;
-
-  @override
-  void initState() {
-    super.initState();
-    print('🐛 ChatMainPage initState - JSON: ${widget.initialInternshipsJson}');
-    _loadInitialInternships();
-  }
-
-  void _loadInitialInternships() {
-    try {
-      final List<dynamic> jsonList = json.decode(widget.initialInternshipsJson);
-      setState(() {
-        internships = jsonList.map((json) => Internship.fromJson(json)).toList();
-      });
-      print('🐛 Internships loaded: ${internships.length}');
-    } catch (e) {
-      print("🐛 Error decoding internships: $e");
-    }
-  }
-
-  void _startInterview(Internship internship) async {
-    try {
-      final conversationId = await platform.invokeMethod(
-        'startInterview',
-        internship.id.toString(),
-      );
-      setState(() {
-        _conversationId = conversationId;
-        _selectedInternship = internship;
-        _selectedIndex = 1;
-      });
-      print('🐛 Interview started: $conversationId');
-    } on PlatformException catch (e) {
-      print("🐛 Error starting interview: ${e.message}");
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_selectedIndex == 0 ? '🎯 Chat IA - Seleccionar' : '🎯 Chat IA - Entrevista'),
-        backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => platform.invokeMethod('close'),
-          ),
-        ],
-      ),
-      drawer: _buildDrawer(),
-      body: _buildPage(_selectedIndex),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.blue),
-            child: Text(
-              'Simulador de Entrevistas',
-              style: TextStyle(color: Colors.white, fontSize: 24),
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.list),
-            title: const Text('Seleccionar Internship'),
-            selected: _selectedIndex == 0,
-            onTap: () {
-              setState(() => _selectedIndex = 0);
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.chat),
-            title: const Text('Chat IA'),
-            selected: _selectedIndex == 1,
-            enabled: _conversationId != null,
-            onTap: _conversationId != null ? () {
-              setState(() => _selectedIndex = 1);
-              Navigator.pop(context);
-            } : null,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPage(int index) {
-    switch (index) {
-      case 0:
-        return _buildInternshipsList();
-      case 1:
-        return _conversationId != null && _selectedInternship != null
-            ? ChatScreen(
-          conversationId: _conversationId!,
-          internship: _selectedInternship!,
-        )
-            : const Center(child: Text('Selecciona un internship para comenzar'));
-      default:
-        return Container();
-    }
-  }
-
-  Widget _buildInternshipsList() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Selecciona un internship para practicar la entrevista:',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            "ℹ️ Información General",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[600],
+            ),
           ),
-          const SizedBox(height: 20),
-          Text('Debug: ${internships.length} internships cargados'),
-          const SizedBox(height: 10),
-          Expanded(
-            child: internships.isEmpty
-                ? const Center(child: Text('No hay internships disponibles'))
-                : ListView.builder(
-              itemCount: internships.length,
-              itemBuilder: (context, index) {
-                final internship = internships[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(internship.title),
-                    subtitle: Text(internship.company),
-                    trailing: const Icon(Icons.arrow_forward),
-                    onTap: () => _startInterview(internship),
-                  ),
-                );
-              },
+          SizedBox(height: 12),
+          if (duration.isNotEmpty) _buildInfoRow("Duración", duration),
+          if (modality.isNotEmpty) _buildInfoRow("Modalidad", modality),
+          if (schedule.isNotEmpty) _buildInfoRow("Horario", schedule),
+          if (salary > 0) _buildInfoRow("Salario", "\$${salary.toStringAsFixed(0)}"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[800],
             ),
           ),
         ],
       ),
     );
   }
-}
 
-// ChatScreen igual que antes pero con más debug
-class ChatScreen extends StatefulWidget {
-  final String conversationId;
-  final Internship internship;
-
-  const ChatScreen({
-    super.key,
-    required this.conversationId,
-    required this.internship,
-  });
-
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final List<ChatMessage> _messages = [];
-  static const platform = MethodChannel('com.example.bravia/chat');
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    print('🐛 ChatScreen initState for: ${widget.internship.title}');
-    _addSystemMessage(
-        "Bienvenido a la simulación de entrevista para el puesto de ${widget.internship.title} en ${widget.internship.company}. "
-            "Actuaré como entrevistador. ¿Estás listo para comenzar?"
+  Widget _buildSection(String title, String content, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: color,
+            width: 4,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  void _addSystemMessage(String text) {
-    setState(() {
-      _messages.add(ChatMessage(text: text, isUser: false, isSystem: true));
-    });
-  }
-
-  void _sendMessage() async {
-    final message = _messageController.text.trim();
-    if (message.isEmpty || _isLoading) return;
-
-    setState(() {
-      _messages.add(ChatMessage(text: message, isUser: true));
-      _isLoading = true;
-    });
-
-    _messageController.clear();
-
-    try {
-      final response = await platform.invokeMethod('sendMessage', {
-        'conversationId': widget.conversationId,
-        'message': message,
-      });
-
-      setState(() {
-        _messages.add(ChatMessage(text: response, isUser: false));
-        _isLoading = false;
-      });
-      print('🐛 Message sent and response received');
-    } on PlatformException catch (e) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text: "Error: ${e.message}",
-          isUser: false,
-          isError: true,
-        ));
-        _isLoading = false;
-      });
-      print('🐛 Error sending message: ${e.message}');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // ESTE HEADER NO SE MOSTRARÁ si quieres que se vea el navbar de la app
-        // Lo comentamos para debug
-        /*
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.internship.title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                widget.internship.company,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-            ],
+  Widget _buildListSection(String title, List<String> items, Color color) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: color,
+            width: 4,
           ),
         ),
-        */
-
-        // Lista de mensajes
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: _messages.length + (_isLoading ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index == _messages.length && _isLoading) {
-                return const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 2),
-                      SizedBox(width: 12),
-                      Text('IA está escribiendo...'),
-                    ],
-                  ),
-                );
-              }
-
-              final message = _messages[index];
-              return Align(
-                alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                  padding: const EdgeInsets.all(12.0),
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.8,
-                  ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          SizedBox(height: 12),
+          ...items.map((item) => Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 6, right: 8),
+                  width: 6,
+                  height: 6,
                   decoration: BoxDecoration(
-                    color: message.isUser
-                        ? Theme.of(context).colorScheme.primary
-                        : message.isSystem
-                        ? Colors.orange[100]
-                        : message.isError
-                        ? Colors.red[100]
-                        : Theme.of(context).colorScheme.secondary,
-                    borderRadius: BorderRadius.circular(12.0),
+                    color: color,
+                    shape: BoxShape.circle,
                   ),
+                ),
+                Expanded(
                   child: Text(
-                    message.text,
+                    item,
                     style: TextStyle(
-                      color: message.isUser
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : message.isError
-                          ? Colors.red[800]
-                          : Theme.of(context).colorScheme.onSecondary,
+                      fontSize: 16,
+                      height: 1.4,
+                      color: Colors.grey[700],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-
-        // Input de mensaje
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  enabled: !_isLoading,
-                  decoration: const InputDecoration(
-                    hintText: 'Escribe tu respuesta...',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => _sendMessage(),
-                  maxLines: null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.send),
-                onPressed: _isLoading ? null : _sendMessage,
-              ),
-            ],
-          ),
-        ),
-      ],
+              ],
+            ),
+          )).toList(),
+        ],
+      ),
     );
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    super.dispose();
+  void _onApplyPressed() async {
+    try {
+      await platform.invokeMethod('onApplyPressed');
+    } catch (e) {
+      print('Error applying: $e');
+    }
   }
-}
-
-class ChatMessage {
-  final String text;
-  final bool isUser;
-  final bool isSystem;
-  final bool isError;
-
-  ChatMessage({
-    required this.text,
-    this.isUser = false,
-    this.isSystem = false,
-    this.isError = false,
-  });
 }
